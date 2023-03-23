@@ -1,61 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Roll</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-            margin: 0;
-        }
-        .dice {
-            width: 150px;
-            height: 150px;
-            background-color: white;
-            border: 2px solid black;
-            border-radius: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 48px;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Dice Roll</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-    <div class="dice" id="dice">?</div>
-    <script>
-        const dice = document.getElementById('dice');
-        let rolling = false;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Create texture from canvas
+    function createTexture(dotConfig) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
 
-        function rollDice() {
-            if (rolling) return;
-            rolling = true;
-            const animationDuration = 1000;
-            const endTime = Date.now() + animationDuration;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'black';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 4;
 
-            function animate() {
-                const randomNumber = Math.floor(Math.random() * 6) + 1;
-                dice.textContent = randomNumber;
-                if (Date.now() < endTime) {
-                    requestAnimationFrame(animate);
-                } else {
-                    rolling = false;
-                }
-            }
+      const dotRadius = 16;
+      const dotPositions = [
+        [canvas.width / 2, canvas.height / 2],
+        [canvas.width / 4, canvas.height / 4],
+        [3 * canvas.width / 4, 3 * canvas.height / 4],
+        [3 * canvas.width / 4, canvas.height / 4],
+        [canvas.width / 4, 3 * canvas.height / 4],
+        [canvas.width / 4, canvas.height / 2],
+        [3 * canvas.width / 4, canvas.height / 2],
+      ];
 
-            requestAnimationFrame(animate);
+      dotConfig.forEach((i) => {
+        ctx.beginPath();
+        ctx.arc(dotPositions[i][0], dotPositions[i][1], dotRadius, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      const texture = new THREE.CanvasTexture(canvas);
+      return texture;
+    }
+
+    const dotConfigurations = [
+      [0],
+      [1, 2],
+      [1, 0, 2],
+      [1, 2, 3, 4],
+      [1, 2, 3, 4, 0],
+      [1, 2, 3, 4, 5, 6],
+    ];
+
+    const textures = dotConfigurations.map((config) => createTexture(config));
+
+    // Scene, camera, and renderer setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create dice geometry and materials
+    const geometry = new THREE.BoxGeometry();
+    const materials = textures.map((texture) => new THREE.MeshBasicMaterial({map: texture}));
+
+    const dice = new THREE.Mesh(geometry, materials);
+    scene.add(dice);
+
+    camera.position.z = 5;
+    
+    // Roll the dice
+    let rolling = false;
+    function rollDice() {
+      if (rolling) return;
+      rolling = true;
+      const animationDuration = 1000;
+      const endTime = Date.now() + animationDuration;
+      const speedX = Math.random() * 0.2 - 0.05;
+      const speedY = Math.random() * 0.2 - 0.05;
+
+      function animate() {
+        dice.rotation.x += speedX;
+        dice.rotation.y += speedY;
+
+        if (Date.now() < endTime) {
+          requestAnimationFrame(animate);
+        } else {
+          rolling = false;
+          dice.rotation.x = Math.round(dice.rotation.x / (Math.PI / 2)) * (Math.PI / 2);
+          dice.rotation.y = Math.round(dice.rotation.y / (Math.PI / 2)) * (Math.PI / 2);
         }
+      }
 
-        dice.addEventListener('click', rollDice);
-    </script>
+      requestAnimationFrame(animate);
+    }
+
+    renderer.domElement.addEventListener('click', rollDice);
+
+    // Render loop
+    function render() {
+      requestAnimationFrame(render);
+      renderer.render(scene, camera);
+    }
+    render();
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+      </script>
 </body>
 </html>
 
