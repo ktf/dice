@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Roll</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        .dice {
+            width: 150px;
+            height: 150px;
+            background-color: white;
+            border: 2px solid black;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="dice" id="dice">?</div>
+    <script>
+        const dice = document.getElementById('dice');
+        let rolling = false;
+
+        function rollDice() {
+            if (rolling) return;
+            rolling = true;
+            const animationDuration = 1000;
+            const endTime = Date.now() + animationDuration;
+
+            function animate() {
+                const randomNumber = Math.floor(Math.random() * 6) + 1;
+                dice.textContent = randomNumber;
+                if (Date.now() < endTime) {
+                    requestAnimationFrame(animate);
+                } else {
+                    rolling = false;
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        dice.addEventListener('click', rollDice);
+    </script>
+</body>
+</html>
+
