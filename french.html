@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Dice Roll</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Create texture from canvas
+    function createTexture(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = 'bold 64px Arial';
+      ctx.fillStyle = 'black';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Fill the text, making sure we go to the next line when
+      // \n is encountered
+      const lines = text.split('\n');
+      const lineHeight = canvas.height / lines.length / 3;
+      lines.forEach((line, index) => {
+        // Position the text in the middle, according to the number of lines
+        // With half the line height as distance between lines
+        const y = canvas.height / 2 - lineHeight * (lines.length - 1) + lineHeight * 2 * index;
+        ctx.fillText(line, canvas.width / 2, y);
+      });
+
+      const texture = new THREE.CanvasTexture(canvas);
+      return texture;
+    }
+
+    const faceTexts = [
+      "Indicatif\nprésent",
+      "Subjonctif\nprésent",
+      "Indicatif\nImparfait",
+      "Impératif\n présent",
+      "Futur\nsimple",
+      "Passé\ncomposé"
+    ];
+
+    const numberTexts = ["Je", 
+                          "Tu", 
+                          "Il", "Nous", "Vous", "Ils"];
+
+    const textTextures = faceTexts.map((text) => createTexture(text));
+    const numberTextures = numberTexts.map((text) => createTexture(text));
+
+    // Scene, camera, and renderer setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create dice geometry and materials
+    const geometry = new THREE.BoxGeometry();
+    const textMaterials = textTextures.map((texture) => new THREE.MeshLambertMaterial({map: texture}));
+    const numberMaterials = numberTextures.map((texture) => new THREE.MeshLambertMaterial({map: texture}));
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xffffff, 0.5);
+    pointLight.position.set(10, 10, 10);
+    scene.add(pointLight);
+
+
+    const textDice = new THREE.Mesh(geometry, textMaterials);
+    const numberDice = new THREE.Mesh(geometry, numberMaterials);
+
+    textDice.position.x = 1.5;
+    numberDice.position.x = -1.5;
+
+    scene.add(textDice);
+    scene.add(numberDice);
+
+    camera.position.z = 7;
+
+    // Roll the dice
+    let rollingTextDice = false;
+    let rollingNumberDice = false;
+
+    function rollDice(dice) {
+      let rolling = (dice === textDice) ? rollingTextDice : rollingNumberDice;
+      if (rolling) return;
+
+      rolling = true;
+      const animationDuration = 1500;
+      const endTime = Date.now() + animationDuration;
+      const speedX = Math.random() * 0.2 - 0.1;
+      const speedY = Math.random() * 0.2 - 0.1;
+
+      function animate() {
+        dice.rotation.x += speedX;
+        dice.rotation.y += speedY;
+
+        if (Date.now() < endTime) {
+          requestAnimationFrame(animate);
+        } else {
+          rolling = false;
+          if (dice === textDice) {
+            rollingTextDice = false;
+          } else {
+            rollingNumberDice = false;
+          }
+          dice.rotation.x = Math.round(dice.rotation.x / (Math.PI / 2)) * (Math.PI / 2);
+          dice.rotation.y = Math.round(dice.rotation.y / (Math.PI / 2)) * (Math.PI / 2);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function rollBothDice() {
+      rollDice(textDice);
+      rollDice(numberDice);
+    }
+
+    renderer.domElement.addEventListener('click', rollBothDice);
+
+    // Render loop
+    function render() {
+      requestAnimationFrame(render);
+      renderer.render(scene, camera);
+    }
+    render();
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    </script>
+</body>
+</html>
